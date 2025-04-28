@@ -14,13 +14,13 @@ def generate_bricks_positions(grid_position, length, is_horizontal):
     return bricks_position
 
 
-def generate_walls_positions(surface, occupied):
+def generate_walls_positions(surface, occupied, number_of_walls):
     cols = surface.get_width() // GRID_SIZE
     rows = surface.get_height() // GRID_SIZE
     walls = []
 
-    while len(walls) < NUM_WALLS:
-        length = random.randint(MIN_WALLS, MAX_WALLS)
+    while len(walls) < number_of_walls:
+        length = random.randint(MIN_WALL_LENGTH, MAX_WALL_LENGTH)
         horizontal = random.choice([True, False])
 
         if horizontal:

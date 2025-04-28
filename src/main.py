@@ -69,17 +69,73 @@ def draw_scoreboard(scoreboard_surface, font, score, coins, time_str):
     scoreboard_surface.blit(time_text, (scoreboard_surface.get_width() - 100, 35))
 
 
-def main():
+def main_menu():
+    pg.init()
+    screen = pg.display.set_mode((MENU_WIDTH, MENU_HEIGHT))
+    pg.display.set_caption("Snake Game - Menu")
+    font = pg.font.Font("./fonts/PressStart2P-Regular.ttf", 16)
+
+    menu_options = ["Start Game", "Level 1", "Level 2", "Quit"]
+    selected = 0
+    chosen_level = 1
+
+    while True:
+        screen.fill((0, 0, 0))
+        for i, option in enumerate(menu_options):
+            y_pos = 170 + i * 50
+            if option.startswith("Level"):
+                level_num = int(option.split()[-1])
+                is_selected_level = (chosen_level == level_num)
+                color = (0, 255, 0) if is_selected_level else (150, 150, 150)
+            else:
+                color = (255, 255, 255) if i == selected else (150, 150, 150)
+
+            if i == selected:
+                color = (255, 255, 0)
+
+            label = font.render(option, True, color)
+            label_rect = label.get_rect(center=(MENU_WIDTH // 2, y_pos))
+            screen.blit(label, label_rect)
+        pg.display.flip()
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                sys.exit()
+            elif event.type == pg.KEYDOWN:
+                if event.key == pg.K_UP:
+                    selected = (selected - 1) % len(menu_options)
+                elif event.key == pg.K_DOWN:
+                    selected = (selected + 1) % len(menu_options)
+                elif event.key == pg.K_RETURN:
+                    option = menu_options[selected]
+                    if option == "Start Game":
+                        return chosen_level
+                    elif option == "Quit":
+                        pg.quit()
+                        sys.exit()
+                    elif option.startswith("Level"):
+                        chosen_level = int(option.split()[-1])
+
+
+def main(level=1):
+    pg.display.quit()
+    pg.display.init()
+    screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
     pg.init()
     start_game_time = pg.time.get_ticks()
     pg.mixer.init()
-    screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
     pg.display.set_caption("Snake Game")
     pg.font.init()
     font = pg.font.Font("./fonts/PressStart2P-Regular.ttf", 16)
     clock = pg.time.Clock()
     game_over = False
     game_over_sound_played = False
+
+    speed = 2 if level == 1 else 4
+    number_of_fires = 5 if level == 1 else 8
+    number_of_walls = 7 if level == 1 else 10
 
     occupied_positions = set()
     # Occupy positions for initial snake in the middle
@@ -103,10 +159,10 @@ def main():
     scoreboard_surface = pg.Surface((SCREEN_WIDTH, SCOREBOARD_HEIGHT))
     game_surface = pg.Surface((SCREEN_WIDTH, (SCREEN_HEIGHT - SCOREBOARD_HEIGHT)))
 
-    walls = generate_walls_positions(game_surface, occupied_positions)
+    walls = generate_walls_positions(game_surface, occupied_positions, number_of_walls)
 
     fires = []
-    for _ in range(NUM_FIRES):
+    for _ in range(number_of_fires):
         fire = AnimatedEntity(
             get_random_pixel_position(game_surface, occupied_positions),
             fire_sheet, 5, 40)
@@ -232,8 +288,9 @@ def main():
             draw_game_over_screen(screen, font, score)
 
         pg.display.flip()
-        clock.tick(SPEED)
+        clock.tick(speed)
 
 
 if __name__ == '__main__':
-    main()
+    selected_level = main_menu()
+    main(selected_level)
