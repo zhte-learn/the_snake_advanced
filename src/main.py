@@ -14,23 +14,7 @@ from helpers import (
 )
 
 
-def draw_game_over_screen(surface, font, score):
-    overlay = pg.Surface(surface.get_size(), pg.SRCALPHA)
-    overlay.fill((0, 0, 0, 180))
-
-    text_over = font.render("GAME OVER", True, (255, 0, 0))
-    text_score = font.render(f"Your score: {score}", True, (255, 255, 255))
-    text_again = font.render("Press ENTER to play again", True, (255, 255, 255))
-    text_quit = font.render("Press ESC to quit", True, (200, 200, 200))
-
-    surface.blit(overlay, (0, 0))
-    surface.blit(text_over, (surface.get_width() // 2 - text_over.get_width() // 2, 200))
-    surface.blit(text_score, (surface.get_width() // 2 - text_score.get_width() // 2, 260))
-    surface.blit(text_again, (surface.get_width() // 2 - text_again.get_width() // 2, 320))
-    surface.blit(text_quit, (surface.get_width() // 2 - text_quit.get_width() // 2, 380))
-
-
-def handle_keys(game_object, game_over):
+def handle_keys(game_object, game_over, callback):
     for event in pg.event.get():
         if event.type == pg.QUIT:
             pg.quit()
@@ -38,7 +22,7 @@ def handle_keys(game_object, game_over):
         if event.type == pg.KEYDOWN:
             if game_over:
                 if event.key == pg.K_RETURN:
-                    main()
+                    callback()
                     return
                 elif event.key == pg.K_ESCAPE:
                     pg.quit()
@@ -57,26 +41,62 @@ def handle_keys(game_object, game_over):
                     raise SystemExit
 
 
-def draw_scoreboard(scoreboard_surface, font, score, coins, time_str):
+def draw_game_over_screen(surface, score, font):
+    overlay = pg.Surface(surface.get_size(), pg.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+
+    text_over = font.render("GAME OVER", True, (255, 0, 0))
+    text_score = font.render(f"Your score: {score}", True, (255, 255, 255))
+    text_again = font.render("Press ENTER to play again", True, (255, 255, 255))
+    text_quit = font.render("Press ESC to quit", True, (200, 200, 200))
+
+    surface.blit(overlay, (0, 0))
+    surface.blit(text_over, (surface.get_width() // 2 - text_over.get_width() // 2, 200))
+    surface.blit(text_score, (surface.get_width() // 2 - text_score.get_width() // 2, 260))
+    surface.blit(text_again, (surface.get_width() // 2 - text_again.get_width() // 2, 320))
+    surface.blit(text_quit, (surface.get_width() // 2 - text_quit.get_width() // 2, 380))
+
+
+def draw_level_transition_screen(surface, level, font):
+    overlay = pg.Surface(surface.get_size(), pg.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+    surface.blit(overlay, (0, 0))
+
+    if level == 1:
+        text = font.render("Level 1 Complete!", True, (255, 255, 0))
+        prompt = font.render("Press ENTER to continue to Level 2", True, (255, 255, 255))
+        quit_text = font.render("Press ESC to quit", True, (200, 200, 200))
+        surface.blit(text, (surface.get_width() // 2 - text.get_width() // 2, 240))
+        surface.blit(prompt, (surface.get_width() // 2 - prompt.get_width() // 2, 300))
+        surface.blit(quit_text, (surface.get_width() // 2 - quit_text.get_width() // 2, 360))
+    else:
+        text = font.render("You Win!", True, (0, 255, 0))
+        prompt = font.render("Press ESC to quit", True, (255, 255, 255))
+        surface.blit(text, (surface.get_width() // 2 - text.get_width() // 2, 270))
+        surface.blit(prompt, (surface.get_width() // 2 - prompt.get_width() // 2, 330))
+    pg.display.flip()
+
+
+def draw_scoreboard(scoreboard_surface, score, coins, level, time_str, font):
     scoreboard_surface.fill((0, 0, 0))
 
     score_text = font.render(f"Score: {score}", True, (255, 255, 255))
     coins_text = font.render(f"Coins: {coins}", True, (255, 255, 0))
+    level_text = font.render(f"Level: {level}", True, (180, 255, 180))
     time_text = font.render(time_str, True, (180, 255, 180))
 
     scoreboard_surface.blit(score_text, (20, 35))
     scoreboard_surface.blit(coins_text, (320, 35))
+    scoreboard_surface.blit(level_text, (620, 35))
     scoreboard_surface.blit(time_text, (scoreboard_surface.get_width() - 100, 35))
 
 
-def main_menu():
+def main_menu(font):
     pg.init()
     screen = pg.display.set_mode((MENU_WIDTH, MENU_HEIGHT))
     pg.display.set_caption("Snake Game - Menu")
-    font = pg.font.Font("./fonts/PressStart2P-Regular.ttf", 16)
-
     menu_options = ["Start Game", "Level 1", "Level 2", "Quit"]
-    selected = 0
+    selected_level = 0
     chosen_level = 1
 
     while True:
@@ -88,9 +108,9 @@ def main_menu():
                 is_selected_level = (chosen_level == level_num)
                 color = (0, 255, 0) if is_selected_level else (150, 150, 150)
             else:
-                color = (255, 255, 255) if i == selected else (150, 150, 150)
+                color = (255, 255, 255) if i == selected_level else (150, 150, 150)
 
-            if i == selected:
+            if i == selected_level:
                 color = (255, 255, 0)
 
             label = font.render(option, True, color)
@@ -104,11 +124,11 @@ def main_menu():
                 sys.exit()
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_UP:
-                    selected = (selected - 1) % len(menu_options)
+                    selected_level = (selected_level - 1) % len(menu_options)
                 elif event.key == pg.K_DOWN:
-                    selected = (selected + 1) % len(menu_options)
+                    selected_level = (selected_level + 1) % len(menu_options)
                 elif event.key == pg.K_RETURN:
-                    option = menu_options[selected]
+                    option = menu_options[selected_level]
                     if option == "Start Game":
                         return chosen_level
                     elif option == "Quit":
@@ -118,7 +138,7 @@ def main_menu():
                         chosen_level = int(option.split()[-1])
 
 
-def main(level=1):
+def main(font, level=1, ):
     pg.display.quit()
     pg.display.init()
     screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -126,16 +146,18 @@ def main(level=1):
     pg.init()
     start_game_time = pg.time.get_ticks()
     pg.mixer.init()
+    pg.mixer.music.load("./sounds/forest.mp3")
+    pg.mixer.music.set_volume(0.5)
+    pg.mixer.music.play(-1)
     pg.display.set_caption("Snake Game")
-    pg.font.init()
-    font = pg.font.Font("./fonts/PressStart2P-Regular.ttf", 16)
+
     clock = pg.time.Clock()
     game_over = False
     game_over_sound_played = False
 
-    speed = 2 if level == 1 else 4
+    speed = 2 if level == 1 else 3
     number_of_fires = 5 if level == 1 else 8
-    number_of_walls = 7 if level == 1 else 10
+    number_of_walls = 9 if level == 1 else 12
 
     occupied_positions = set()
     # Occupy positions for initial snake in the middle
@@ -179,7 +201,7 @@ def main(level=1):
         screen.fill((0, 0, 0))
         scoreboard_surface.fill((0, 70, 0))
         game_surface.fill(BOARD_BACKGROUND_COLOR)
-        handle_keys(snake, game_over)
+        handle_keys(snake, game_over, lambda: main(font, level=1))
 
         is_obstacle = False
         snake_head = snake.get_head()
@@ -207,6 +229,7 @@ def main(level=1):
             is_obstacle = True
             if out_of_bounds or bites_self:
                 if not game_over_sound_played:
+                    pg.mixer.music.stop()
                     pg.mixer.Sound("./sounds/GameOver.mp3").play()
                     game_over_sound_played = True
                 game_over = True
@@ -238,6 +261,7 @@ def main(level=1):
                     coins -= 1
                 else:
                     if not game_over_sound_played:
+                        pg.mixer.music.stop()
                         pg.mixer.Sound("./sounds/GameOver.mp3").play()
                         game_over_sound_played = True
                     game_over = True
@@ -280,17 +304,51 @@ def main(level=1):
         snake.draw(game_surface)
 
         time_str = generate_time_string(current_time, start_game_time)
-        draw_scoreboard(scoreboard_surface, font, score, coins, time_str)
+        draw_scoreboard(scoreboard_surface, score, coins, level, time_str, font)
         screen.blit(scoreboard_surface, (0, 0))
         screen.blit(game_surface, (0, SCOREBOARD_HEIGHT))
 
         if game_over:
-            draw_game_over_screen(screen, font, score)
+            draw_game_over_screen(screen, score, font)
 
+        if score >= 20:
+            if level == 1:
+                draw_level_transition_screen(screen, level, font)
+                waiting = True
+                while waiting:
+                    for event in pg.event.get():
+                        if event.type == pg.QUIT:
+                            pg.quit()
+                            sys.exit()
+                        elif event.type == pg.KEYDOWN:
+                            if event.key == pg.K_RETURN:
+                                main(font, level=2)
+                                return
+                            elif event.key == pg.K_ESCAPE:
+                                pg.quit()
+                                sys.exit()
+                    clock.tick(10)
+            else:
+                draw_level_transition_screen(screen, level, font)
+                waiting = True
+                while waiting:
+                    for event in pg.event.get():
+                        if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
+                            pg.quit()
+                            sys.exit()
+                    clock.tick(10)
         pg.display.flip()
         clock.tick(speed)
 
 
+def run_game():
+    pg.init()
+    pg.font.init()
+
+    font = pg.font.Font("./fonts/PressStart2P-Regular.ttf", 16)
+    level = main_menu(font)
+    main(font, level)
+
+
 if __name__ == '__main__':
-    selected_level = main_menu()
-    main(selected_level)
+    run_game()
